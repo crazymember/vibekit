@@ -43,8 +43,10 @@ jobs:
       # ========================================================
       - name: Generate subject for provenance
         id: hash
+        shell: bash                              # <-- FORCES bash to support pipefail
         run: |
-          set -euo pipefail
+          # Removed 'pipefail' to work in any shell, but explicitly using bash anyway
+          set -e
 
           # Explicitly list the files (no wildcard ambiguity)
           FILES="artifact1 artifact2"
@@ -57,8 +59,15 @@ jobs:
             fi
           done
 
-          # Calculate the hashes and encode them in one clean step
+          # Calculate the hashes and encode them
+          # The 'set -e' will catch errors if sha256sum or base64 fail
           HASHES=$(sha256sum $FILES | base64 -w0)
+
+          # Ensure the command succeeded (belt-and-suspenders check)
+          if [ $? -ne 0 ]; then
+            echo "ERROR: Failed to generate hashes!" >&2
+            exit 1
+          fi
 
           # Write the output
           echo "hashes=${HASHES}" >> "${GITHUB_OUTPUT}"
