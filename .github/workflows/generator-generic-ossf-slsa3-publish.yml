@@ -1,85 +1,35 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+name: Build and Download
 
-# This workflow lets you generate SLSA provenance file for your project.
-# The generation satisfies level 3 for the provenance requirements - see https://slsa.dev/spec/v0.1/requirements
-# The project is an initiative of the OpenSSF (openssf.org) and is developed at
-# https://github.com/slsa-framework/slsa-github-generator.
-# The provenance file can be verified using https://github.com/slsa-framework/slsa-verifier.
-# For more information about SLSA and how it improves the supply-chain, visit slsa.dev.
-
-name: SLSA generic generator
 on:
-  workflow_dispatch:
-  release:
-    types: [created]
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:    # Allows you to manually run it from the GitHub Actions tab
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      digests: ${{ steps.hash.outputs.digests }}
 
     steps:
+      # 1. Get your code
       - uses: actions/checkout@v4
 
-      # ========================================================
-      #
-      # Step 1: Build your artifacts.
-      #
-      # ========================================================
-      - name: Build artifacts
-        run: |
-            # These are some amazing artifacts.
-            echo "artifact1" > artifact1
-            echo "artifact2" > artifact2
+      # 2. Set up the environment (change this depending on your project)
+      # For Node.js / React / Vue / Angular:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      # ========================================================
-      #
-      # Step 2: Generate provenance subjects (FIXED)
-      #
-      # ========================================================
-      - name: Generate subject for provenance
-        id: hash
-        shell: bash                              # <-- FORCES bash to support pipefail
-        run: |
-          # Removed 'pipefail' to work in any shell, but explicitly using bash anyway
-          set -e
+      # 3. Install and Build
+      - name: Install dependencies
+        run: npm install
 
-          # Explicitly list the files (no wildcard ambiguity)
-          FILES="artifact1 artifact2"
+      - name: Build the project
+        run: npm run build   # <--- Change this to your exact build command
 
-          # Verify both files actually exist
-          for f in $FILES; do
-            if [ ! -f "$f" ]; then
-              echo "ERROR: File $f not found!" >&2
-              exit 1
-            fi
-          done
-
-          # Calculate the hashes and encode them
-          # The 'set -e' will catch errors if sha256sum or base64 fail
-          HASHES=$(sha256sum $FILES | base64 -w0)
-
-          # Ensure the command succeeded (belt-and-suspenders check)
-          if [ $? -ne 0 ]; then
-            echo "ERROR: Failed to generate hashes!" >&2
-            exit 1
-          fi
-
-          # Write the output
-          echo "hashes=${HASHES}" >> "${GITHUB_OUTPUT}"
-
-  provenance:
-    needs: [build]
-    permissions:
-      actions: read   # To read the workflow path.
-      id-token: write # To sign the provenance.
-      contents: write # To add assets to a release.
-    # Using v2.1.0 (which uses upload-artifact@v4)
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
-    with:
-      base64-subjects: "${{ needs.build.outputs.digests }}"
-      upload-assets: true # Optional: Upload to a new release
+      # 4. Upload the built folder so you can download it
+      - name: Upload built app
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-built-app
+          path: ./dist       # <--- Change this to your build output folder
