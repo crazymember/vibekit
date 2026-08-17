@@ -1,35 +1,33 @@
 name: Build and Download
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:    # Allows you to manually run it from the GitHub Actions tab
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Get your code
       - uses: actions/checkout@v4
 
-      # 2. Set up the environment (change this depending on your project)
-      # For Node.js / React / Vue / Angular:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # 3. Install and Build
       - name: Install dependencies
         run: npm install
 
-      - name: Build the project
-        run: npm run build   # <--- Change this to your exact build command
+      # DIAGNOSTIC: This will show you which scripts exist
+      - name: Show available npm scripts
+        run: npm run
 
-      # 4. Upload the built folder so you can download it
-      - name: Upload built app
+      # BUILD: Replace "build" with whatever you saw in the previous step
+      - name: Build the project
+        run: npm run build   # <--- CHANGE THIS to the correct script name
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: my-built-app
-          path: ./dist       # <--- Change this to your build output folder
+          name: my-app
+          path: ./dist       # <--- CHANGE THIS to your actual output folder
