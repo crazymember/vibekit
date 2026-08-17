@@ -3,12 +3,15 @@ name: Build and Download
 on:
   workflow_dispatch:
   push:
+    branches: [ main, master ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -16,18 +19,13 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
-      # DIAGNOSTIC: This will show you which scripts exist
-      - name: Show available npm scripts
-        run: npm run
+      - name: Build web app
+        run: npm run build:web
 
-      # BUILD: Replace "build" with whatever you saw in the previous step
-      - name: Build the project
-        run: npm run build   # <--- CHANGE THIS to the correct script name
-
-      - name: Upload Artifact
+      - name: Upload built app
         uses: actions/upload-artifact@v4
         with:
-          name: my-app
-          path: ./dist       # <--- CHANGE THIS to your actual output folder
+          name: vibekit-web-build
+          path: ./dist
