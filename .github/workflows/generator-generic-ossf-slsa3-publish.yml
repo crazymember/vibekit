@@ -38,10 +38,7 @@ jobs:
 
       # ========================================================
       #
-      # Step 2: Add a step to generate the provenance subjects
-      #         as shown below. Update the sha256 sum arguments
-      #         to include all binaries that you generate
-      #         provenance for.
+      # Step 2: Generate provenance subjects (FIXED)
       #
       # ========================================================
       - name: Generate subject for provenance
@@ -49,10 +46,22 @@ jobs:
         run: |
           set -euo pipefail
 
-          # List the artifacts the provenance will refer to.
-          files=$(ls artifact*)
-          # Generate the subjects (base64 encoded).
-          echo "hashes=$(sha256sum $files | base64 -w0)" >> "${GITHUB_OUTPUT}"
+          # Explicitly list the files (no wildcard ambiguity)
+          FILES="artifact1 artifact2"
+
+          # Verify both files actually exist
+          for f in $FILES; do
+            if [ ! -f "$f" ]; then
+              echo "ERROR: File $f not found!" >&2
+              exit 1
+            fi
+          done
+
+          # Calculate the hashes and encode them in one clean step
+          HASHES=$(sha256sum $FILES | base64 -w0)
+
+          # Write the output
+          echo "hashes=${HASHES}" >> "${GITHUB_OUTPUT}"
 
   provenance:
     needs: [build]
@@ -60,7 +69,7 @@ jobs:
       actions: read   # To read the workflow path.
       id-token: write # To sign the provenance.
       contents: write # To add assets to a release.
-    # FIXED: Using v2.1.0 which uses upload-artifact@v4
+    # Using v2.1.0 (which uses upload-artifact@v4)
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
     with:
       base64-subjects: "${{ needs.build.outputs.digests }}"
